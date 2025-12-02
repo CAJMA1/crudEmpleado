@@ -5,7 +5,6 @@ namespace App\Http\Controllers;
 use App\Models\Empleado;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
-
 class EmpleadoController extends Controller
 {
     /**
@@ -14,7 +13,7 @@ class EmpleadoController extends Controller
     public function index()
     {
         //
-        $datos['empleados'] = Empleado::paginate(5);
+        $datos['empleados'] = Empleado::paginate(1);
         return view('empleado.index', $datos);
     }
 
@@ -32,6 +31,20 @@ class EmpleadoController extends Controller
      */
     public function store(Request $request)
     {
+        $campos = [
+            'Nombre' => 'required|string|max:100',
+            'ApellidoPaterno' => 'required|string|max:100',
+            'ApellidoMaterno' => 'required|string|max:100',
+            'Correo' => 'required|email',
+            'Foto' => 'required|max:10000|mimes:jpeg,png,jpg'
+        ];
+        //mensajes si no se escribe correctamente la información
+        $mensaje = [
+            'required' => 'El :attribute es requerido',
+            'Foto.required' => 'La foto requerida'
+        ];
+        //todo lo que se este enviando, valide los campos y envie los mensajes
+        $this->validate($request, $campos, $mensaje);
         //
         $datosEmpleado = request()->except('_token');
         if ($request->hasFile('Foto')) {
@@ -65,12 +78,27 @@ class EmpleadoController extends Controller
      */
     public function update(Request $request, $id)
     {
+        $campos = [
+            'Nombre' => 'required|string|max:100',
+            'ApellidoPaterno' => 'required|string|max:100',
+            'ApellidoMaterno' => 'required|string|max:100',
+            'Correo' => 'required|email'
+        ];
+        //mensajes si los campos están vacios
+        $mensaje = [
+            'required' => 'El :attribute es requerido'
+        ];
+        //la fotografía solo se valida si el usuario queire cambiar de foto
+        if ($request->hasFile('Foto')) {
+            $campos = ['Foto' => 'required|max:10000|mimes:jpeg,png,jpg'];
+            $mensaje = ['Foto.required' => 'La foto requerida'];
+        }
+        //todo lo que se este enviando, valide los campos y envie los mensajes
+        $this->validate($request, $campos, $mensaje);
         //
         $datosEmpleado = request()->except(['_token', '_method']);
         //Toma el modelo de la tabla y modifica
-        Empleado::where('id', '=', $id)->update($datosEmpleado);
-        $empleado = Empleado::findOrFail($id);
-        return view('empleado.edit', compact('empleado'));
+        
 
         if ($request->hasFile('Foto')) {
             $empleado = Empleado::findOrFail($id);
@@ -79,6 +107,9 @@ class EmpleadoController extends Controller
             //guarda la nueva imagen
 
         }
+        Empleado::where('id', '=', $id)->update($datosEmpleado);
+        $empleado = Empleado::findOrFail($id);
+        return redirect('empleado')->with('mensaje', 'El registro del empleado se modificó correctamente');
     }
 
     /**
